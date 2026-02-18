@@ -1,45 +1,59 @@
 import unittest
-
+from unittest.mock import patch, Mock
 from github_api import get_repo_commit_counts
 
+class TestGitHubApiMocking(unittest.TestCase):
 
-class TestGitHubApiLive(unittest.TestCase):
-    """
-    LIVE integration-style unit test (hits real GitHub API).
+    @patch("github_api.requests.get")
+    def test_two_repos_commit_counts(self, mock_get):
+        # Mock response for /users/<id>/repos
+        repos_resp = Mock()
+        repos_resp.status_code = 200
+        repos_resp.json.return_value = [
+            {"name": "Triangle567"},
+            {"name": "Square567"},
+        ]
 
-    Warning:
-    - Requires internet access.
-    - Can fail due to GitHub rate limits, outages, or CI network restrictions.
-    """
+        # Mock response for /repos/<id>/<repo>/commits with per_page=1
+        # Use Link header so commit count comes from rel="last"
+        tri_commits_resp = Mock()
+        tri_commits_resp.status_code = 200
+        tri_commits_resp.headers = {
+            "Link": '<https://api.github.com/repos/testuser/Triangle567/commits?per_page=1&page=10>; rel="last"'
+        }
+        tri_commits_resp.json.return_value = [{}]
 
-    def test_live_repo_commit_counts_for_hdnguye_code(self):
-        user_id = "nnguyen10"
-        results = get_repo_commit_counts(user_id)
+        sq_commits_resp = Mock()
+        sq_commits_resp.status_code = 200
+        sq_commits_resp.headers = {
+            "Link": '<https://api.github.com/repos/testuser/Square567/commits?per_page=1&page=27>; rel="last"'
+        }
+        sq_commits_resp.json.return_value = [{}]
 
-        # Basic sanity checks (keep them flexible so the test doesn’t break
-        # when you add/delete repos).
-        self.assertIsInstance(results, list)
-        self.assertGreaterEqual(len(results), 0)  # user may have 0 repos; that's still valid
+        # Order your code calls requests.get:
+        # 1) repos list
+        # 2) commits for Triangle567
+        # 3) commits for Square567
+        mock_get.side_effect = [repos_resp, tri_commits_resp, sq_commits_resp]
 
-        # If there are repos, validate structure and commit counts
-        for item in results:
-            # Works whether you returned RepoCommits dataclass or tuples/dicts
-            if hasattr(item, "repo") and hasattr(item, "commits"):
-                repo_name = item.repo
-                commit_count = item.commits
-            elif isinstance(item, tuple) and len(item) == 2:
-                repo_name, commit_count = item
-            elif isinstance(item, dict) and "repo" in item and "commits" in item:
-                repo_name = item["repo"]
-                commit_count = item["commits"]
-            else:
-                self.fail(f"Unexpected result item format: {item!r}")
+        results = get_repo_commit_counts("testuser")
 
-            self.assertIsInstance(repo_name, str)
-            self.assertGreater(len(repo_name), 0)
-            self.assertIsInstance(commit_count, int)
-            self.assertGreaterEqual(commit_count, 0)
+        results_map = {r.repo: r.commits for r in results}
+        self.assertEqual(results_map["Triangle567"], 10)
+        self.assertEqual(results_map["Square567"], 27)
+        self.assertEqual(mock_get.call_count, 3)
 
+    @patch("github_api.requests.get")
+    def test_user_not_found_returns_empty_list(self, mock_get):
+        # fetch_all_repos will raise GitHubApiError on 404 in your code,
+        # so we expect an exception (not empty list).
+        resp = Mock()
+        resp.status_code = 404
+        resp.json.return_value = {"message": "Not Found"}
+        mock_get.return_value = resp
+
+        with self.assertRaises(Exception):
+            get_repo_commit_counts("missinguser")
 
 if __name__ == "__main__":
     unittest.main()
