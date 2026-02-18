@@ -1,0 +1,15 @@
+
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Coverage files
+.coverage
+htmlcov/
+
+# VS Code settings (optional)
+.vscode/
+
+# OS files
+.DS_Store
