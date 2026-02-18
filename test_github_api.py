@@ -7,6 +7,7 @@ into get_repo_commit_counts(), which is supported by the code design.
 
 import unittest
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 from github_api import get_repo_commit_counts
 
@@ -51,6 +52,16 @@ from github_api import get_repo_commit_counts, GitHubApiError
 class TestGitHubApiMocking(unittest.TestCase):
     """Test cases for GitHub API commit counting using injected mocks."""
 
+=======
+from unittest.mock import Mock
+
+from github_api import get_repo_commit_counts, GitHubApiError
+
+
+class TestGitHubApiMocking(unittest.TestCase):
+    """Test cases for GitHub API commit counting using injected mocks."""
+
+>>>>>>> Stashed changes
     def test_two_repos_commit_counts(self):
         """Test commit counts for two repositories using mocked responses."""
         # Mock response for /users/<id>/repos
@@ -88,6 +99,9 @@ class TestGitHubApiMocking(unittest.TestCase):
         mock_get = Mock(side_effect=[repos_resp, tri_commits_resp, sq_commits_resp])
 
         results = get_repo_commit_counts("testuser", get=mock_get)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
             self.assertIsInstance(repo_name, str)
@@ -96,13 +110,25 @@ class TestGitHubApiMocking(unittest.TestCase):
             self.assertGreaterEqual(commit_count, 0)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
     def test_user_not_found_raises(self):
         """Test behavior when GitHub user is not found (404)."""
         resp = Mock()
         resp.status_code = 404
         resp.json.return_value = {"message": "Not Found"}
         resp.headers = {}
+<<<<<<< Updated upstream
+
+        mock_get = Mock(return_value=resp)
+
+        with self.assertRaises(GitHubApiError):
+            get_repo_commit_counts("missinguser", get=mock_get)
+
+>>>>>>> Stashed changes
+=======
 
         mock_get = Mock(return_value=resp)
 
